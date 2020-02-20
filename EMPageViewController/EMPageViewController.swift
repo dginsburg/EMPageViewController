@@ -310,9 +310,10 @@ open class EMPageViewController: UIViewController, UIScrollViewDelegate {
             return
         }
         
-        self.scrollView.frame = self.view.bounds
+        self.scrollView.frame = self.view.bounds.insetBy(dx: self.pageSpacing, dy: 0)
+        self.scrollView.clipsToBounds = false
         if self.isOrientationHorizontal {
-            self.scrollView.contentSize = CGSize(width: self.view.bounds.width * 3, height: self.view.bounds.height)
+            self.scrollView.contentSize = CGSize(width: scrollPageWidth * 3, height: viewHeight)
         } else {
             self.scrollView.contentSize = CGSize(width: self.view.bounds.width, height: self.view.bounds.height * 3)
         }
@@ -357,9 +358,9 @@ open class EMPageViewController: UIViewController, UIScrollViewDelegate {
             self.beforeViewController = self.selectedViewController
             self.selectedViewController = self.afterViewController
 
-            self.endAppearanceTransition(for: self.selectedViewController)
+//            self.endAppearanceTransition(for: self.selectedViewController)
 
-            self.removeChildIfNeeded(self.beforeViewController, shouldEndAppearanceTransition: true)
+//            self.removeChildIfNeeded(self.beforeViewController, shouldEndAppearanceTransition: true)
 
             self.delegate?.em_pageViewController?(self, didFinishScrollingFrom: self.beforeViewController, destinationViewController: self.selectedViewController!, transitionSuccessful: true)
 
@@ -383,9 +384,9 @@ open class EMPageViewController: UIViewController, UIScrollViewDelegate {
             self.afterViewController = self.selectedViewController
             self.selectedViewController = self.beforeViewController
 
-            self.endAppearanceTransition(for: self.selectedViewController)
+//            self.endAppearanceTransition(for: self.selectedViewController)
 
-            self.removeChildIfNeeded(self.afterViewController, shouldEndAppearanceTransition: true)
+//            self.removeChildIfNeeded(self.afterViewController, shouldEndAppearanceTransition: true)
 
             self.delegate?.em_pageViewController?(self, didFinishScrollingFrom: self.afterViewController!, destinationViewController: self.selectedViewController!, transitionSuccessful: true)
 
@@ -415,13 +416,13 @@ open class EMPageViewController: UIViewController, UIScrollViewDelegate {
             self.endAppearanceTransition(for: self.selectedViewController)
 
             if (self.navigationDirection == .forward) {
-                self.removeChildIfNeeded(self.beforeViewController, shouldEndAppearanceTransition: false)
-                self.removeChildIfNeeded(self.afterViewController, shouldEndAppearanceTransition: true)
+//                self.removeChildIfNeeded(self.beforeViewController, shouldEndAppearanceTransition: false)
+//                self.removeChildIfNeeded(self.afterViewController, shouldEndAppearanceTransition: true)
 
                 self.delegate?.em_pageViewController?(self, didFinishScrollingFrom: self.selectedViewController!, destinationViewController: self.afterViewController!, transitionSuccessful: false)
             } else if (self.navigationDirection == .reverse) {
-                self.removeChildIfNeeded(self.beforeViewController, shouldEndAppearanceTransition: true)
-                self.removeChildIfNeeded(self.afterViewController, shouldEndAppearanceTransition: false)
+//                self.removeChildIfNeeded(self.beforeViewController, shouldEndAppearanceTransition: true)
+//                self.removeChildIfNeeded(self.afterViewController, shouldEndAppearanceTransition: false)
 
                 self.delegate?.em_pageViewController?(self, didFinishScrollingFrom: self.selectedViewController!, destinationViewController: self.beforeViewController!, transitionSuccessful: false)
             }
@@ -488,25 +489,45 @@ open class EMPageViewController: UIViewController, UIScrollViewDelegate {
         guard self.viewHasAppeared, let viewController = viewController, viewController.parent == self else { return }
         viewController.endAppearanceTransition()
     }
+    
+    @objc open var pageSpacing: CGFloat = 16 {
+        didSet {
+            view.setNeedsLayout()
+        }
+    }
 
+    var viewWidth: CGFloat {
+        self.view.bounds.width
+    }
+    var viewHeight: CGFloat {
+        self.view.bounds.height
+    }
+    var scrollPageWidth: CGFloat {
+        viewWidth - (2 * self.pageSpacing)
+    }
+    var contentPageWidth: CGFloat {
+        scrollPageWidth - (2 * self.pageSpacing)
+    }
+    
     private func layoutViews() {
         
-        let viewWidth = self.view.bounds.width
-        let viewHeight = self.view.bounds.height
+//        let viewWidth = self.view.bounds.width
+//        let viewHeight = self.view.bounds.height
         
         var beforeInset:CGFloat = 0
         var afterInset:CGFloat = 0
         
         if (self.beforeViewController == nil) {
-            beforeInset = self.isOrientationHorizontal ? -viewWidth : -viewHeight
+            beforeInset = self.isOrientationHorizontal ? -scrollPageWidth : -viewHeight
         }
         
         if (self.afterViewController == nil) {
-            afterInset = self.isOrientationHorizontal ? -viewWidth : -viewHeight
+            afterInset = self.isOrientationHorizontal ? -scrollPageWidth : -viewHeight
         }
         
         self.adjustingContentOffset = true
-        self.scrollView.contentOffset = CGPoint(x: self.isOrientationHorizontal ? viewWidth : 0, y: self.isOrientationHorizontal ? 0 : viewHeight)
+        self.scrollView.contentOffset = CGPoint(x: self.isOrientationHorizontal ? scrollPageWidth : 0,
+                                                y: self.isOrientationHorizontal ? 0 : viewHeight)
         if self.isOrientationHorizontal {
             self.scrollView.contentInset = UIEdgeInsets.init(top: 0, left: beforeInset, bottom: 0, right: afterInset)
         } else {
@@ -515,9 +536,30 @@ open class EMPageViewController: UIViewController, UIScrollViewDelegate {
         self.adjustingContentOffset = false
         
         if self.isOrientationHorizontal {
-            self.beforeViewController?.view.frame = CGRect(x: 0, y: 0, width: viewWidth, height: viewHeight)
-            self.selectedViewController?.view.frame = CGRect(x: viewWidth, y: 0, width: viewWidth, height: viewHeight)
-            self.afterViewController?.view.frame = CGRect(x: viewWidth * 2, y: 0, width: viewWidth, height: viewHeight)
+            self.beforeViewController?.view.frame = CGRect(x: self.pageSpacing,
+                                                           y: 0,
+                                                           width: contentPageWidth,
+                                                           height: viewHeight)
+            self.selectedViewController?.view.frame = CGRect(x: self.scrollPageWidth + self.pageSpacing,
+                                                             y: 0,
+                                                             width: contentPageWidth,
+                                                             height: viewHeight)
+            self.afterViewController?.view.frame = CGRect(x: (self.scrollPageWidth * 2) + self.pageSpacing,
+                                                          y: 0,
+                                                          width: contentPageWidth,
+                                                          height: viewHeight)
+//            self.beforeViewController?.view.frame = CGRect(x: self.horizontalMargin,
+//                                                           y: 0,
+//                                                           width: pageWidth,
+//                                                           height: viewHeight)
+//            self.selectedViewController?.view.frame = CGRect(x: viewWidth + self.horizontalMargin,
+//                                                             y: 0,
+//                                                             width: pageWidth,
+//                                                             height: viewHeight)
+//            self.afterViewController?.view.frame = CGRect(x: (viewWidth * 2) + self.horizontalMargin,
+//                                                          y: 0,
+//                                                          width: pageWidth,
+//                                                          height: viewHeight)
         } else {
             self.beforeViewController?.view.frame = CGRect(x: 0, y: 0, width: viewWidth, height: viewHeight)
             self.selectedViewController?.view.frame = CGRect(x: 0, y: viewHeight, width: viewWidth, height: viewHeight)
@@ -536,7 +578,7 @@ open class EMPageViewController: UIViewController, UIScrollViewDelegate {
         
         self.addChildIfNeeded(destinationViewController, shouldBeginAppearanceTransition: self.viewHasAppeared)
         if self.viewHasAppeared {
-            self.beginAppearanceTransition(for: startingViewController, isAppearing: false, animated: self.transitionAnimated)
+//            self.beginAppearanceTransition(for: startingViewController, isAppearing: false, animated: self.transitionAnimated)
         }
     }
     
@@ -628,7 +670,7 @@ open class EMPageViewController: UIViewController, UIScrollViewDelegate {
             if  (self.beforeViewController != nil && self.afterViewController != nil) || // It isn't at the beginning or end of the page collection
                 (self.afterViewController != nil && self.beforeViewController == nil && scrollView.contentOffset.x > abs(scrollView.contentInset.left)) || // If it's at the beginning of the collection, the decelleration can't be triggered by scrolling away from, than torwards the inset
                 (self.beforeViewController != nil && self.afterViewController == nil && scrollView.contentOffset.x < abs(scrollView.contentInset.right)) { // Same as the last condition, but at the end of the collection
-                    scrollView.setContentOffset(CGPoint(x: self.view.bounds.width, y: 0), animated: true)
+//                    scrollView.setContentOffset(CGPoint(x: self.view.bounds.width, y: 0), animated: true)
             }
         } else {
             if  (self.beforeViewController != nil && self.afterViewController != nil) || // It isn't at the beginning or end of the page collection
